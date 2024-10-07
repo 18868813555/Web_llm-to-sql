@@ -9,14 +9,11 @@ def plot_stock_line(csv_file, symbol, start_date, end_date):
         df = pd.read_csv(csv_file, parse_dates=['date'])
         df.set_index('date', inplace=True)
 
-        # Convert input dates to datetime
         start_date = pd.to_datetime(start_date, format=date_format)
         end_date = pd.to_datetime(end_date, format=date_format)
 
-        # Filter data within the date range
         df_filtered = df[(df.index >= start_date) & (df.index <= end_date)]
 
-        # Check if the filtered dataframe is empty
         if df_filtered.empty:
             raise ValueError(f"No data available for {symbol} between {start_date.date()} and {end_date.date()}")
 
@@ -30,12 +27,11 @@ def plot_stock_line(csv_file, symbol, start_date, end_date):
         plt.xticks(rotation=45)
         plt.tight_layout()
 
-        # Ensure 'public' directory exists
         if not os.path.exists('public'):
             os.makedirs('public')
 
         plot_path = os.path.join('public', 'stock_plot.png')
-        plt.savefig(plot_path)  # Save in the public directory
+        plt.savefig(plot_path)
         plt.close()
         print("Plot saved as public/stock_plot.png")
 

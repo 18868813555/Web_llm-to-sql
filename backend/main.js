@@ -13,23 +13,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = 3005;
 
-let dbConfig = {}; // Hold database config temporarily
+let dbConfig = {}; 
 
-// Configure OpenAI
 const openai = new OpenAI({
   apiKey: ''
 });
 
 app.use(bodyParser.json());
 
-// Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend', 'index.html'));
 });
 
-// Endpoint to configure database
 app.post('/configure-db', async (req, res) => {
   const { dbHost, dbName, dbUser, dbPassword } = req.body;
 
@@ -49,14 +46,12 @@ app.post('/configure-db', async (req, res) => {
   }
 });
 
-// Endpoint to get stock prices and generate plot
 app.post('/plot-stock', async (req, res) => {
   const { symbol, startDate, endDate } = req.body;
 
   try {
       const connection = await mysql.createConnection(dbConfig);
 
-      // Get table and column information
       const [tables] = await connection.execute('SHOW TABLES');
       const tableName = tables[0][Object.keys(tables[0])[0]];
 
@@ -72,12 +67,10 @@ app.post('/plot-stock', async (req, res) => {
           [symbol, startDate, endDate]
       );
 
-      // Check if data is available
       if (rows.length === 0) {
           return res.status(404).json({ error: `No data available for ${symbol} between ${startDate} and ${endDate}` });
       }
 
-      // Generate CSV data with headers and correct date format
       const csvData = 'date,close\n' + rows.map(row => `${new Date(row.date).toISOString().split('T')[0]},${row.close}`).join('\n');
       const csvFilePath = path.join(__dirname, 'stock_data.csv');
       fs.writeFileSync(csvFilePath, csvData);
@@ -101,7 +94,6 @@ app.post('/plot-stock', async (req, res) => {
   }
 });
 
-// Endpoint to submit queries
 app.post('/submit-query', async (req, res) => {
   const userInput = req.body.userInput;
 
@@ -112,7 +104,6 @@ app.post('/submit-query', async (req, res) => {
 
     console.log('Connected to the database.');
 
-    // Get database table structure
     const [tables] = await connection.query('SHOW TABLES');
     const tableSchema = {};
 
@@ -127,7 +118,6 @@ app.post('/submit-query', async (req, res) => {
       return `Table ${table}: ${columnsDescription}`;
     }).join('\n');
 
-    // Generate SQL query using GPT-4 Turbo
     const completion = await openai.chat.completions.create({
       model: 'gpt-4-turbo',
       messages: [
@@ -139,12 +129,10 @@ app.post('/submit-query', async (req, res) => {
 
     let sqlQuery = completion.choices[0].message.content.trim();
 
-    // Remove possible Markdown formatting
     sqlQuery = sqlQuery.replace(/```sql|```/g, '').trim();
 
     console.log('Generated SQL Query:', sqlQuery);
 
-    // Check if the generated query only contains SQL statements
     const validSQLKeywords = ['select', 'insert', 'update', 'delete'];
     const isValidSQL = validSQLKeywords.some(keyword => sqlQuery.toLowerCase().startsWith(keyword));
 
@@ -152,7 +140,6 @@ app.post('/submit-query', async (req, res) => {
       throw new Error('Generated text is not a valid SQL query.');
     }
 
-    // Execute SQL query
     const [results] = await connection.query(sqlQuery);
     console.log(results)
     const response = {
@@ -168,7 +155,6 @@ app.post('/submit-query', async (req, res) => {
   }
 });
 
-// Endpoint for GPT chat
 app.post('/gpt-chat', async (req, res) => {
   const userInput = req.body.userInput;
 
